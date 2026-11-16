@@ -580,7 +580,16 @@ function connect(form,type,branch,fields,photos) {
       if(!BR[branch.value] || BR[branch.value].closed) throw Error("กรุณาเลือกสาขาที่เปิดอยู่");
       if(photos.length>5) throw Error("แนบรูปได้ไม่เกิน 5 รูป");
       const images=await Promise.all(photos.map(file=>compress(file,1000,.65,true)));
-      const id=await new Promise((ok,fail)=>google.script.run.withSuccessHandler(ok).withFailureHandler(fail).submitRecord({key,type,branch:BR[branch.value].name,fields:fields(),images}));
+      const payload={key,type,branch:BR[branch.value].name,fields:fields(),images};
+      const response=await fetch("https://script.google.com/macros/s/AKfycbz-forYe8uMXFi1RLtzb9rhm42pv0FIj0_tHi38SAnxTHs03AGaMmfcdxsNeYfyOvQp/exec",{
+        method:"POST", credentials:"omit",
+        headers:{"Content-Type":"text/plain;charset=utf-8"},
+        body:JSON.stringify(payload)
+      });
+      if(!response.ok) throw Error("ส่งเรื่องไม่สำเร็จ กรุณาลองอีกครั้ง");
+      const result=await response.json();
+      if(result.id!=="XX-"+key) throw Error(result.error || "ยังยืนยันการรับเรื่องไม่ได้ กรุณาลองอีกครั้ง");
+      const id=result.id;
       close();openSheet("ส่งเรื่องแล้ว",h("div",{class:"notice",text:"ทีมกลางได้รับเรื่องแล้ว · "+id}));
     }catch(e){err.textContent=e.message || "ส่งไม่สำเร็จ กรุณาลองอีกครั้ง"}finally{btn.disabled=false}
   };

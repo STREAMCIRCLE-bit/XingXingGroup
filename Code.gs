@@ -1,5 +1,17 @@
 function doGet() {
-  return HtmlService.createHtmlOutputFromFile('Index').addMetaTag('viewport','width=device-width, initial-scale=1').setTitle('บันทึกความผิดพนักงานรายสาขา');
+  return HtmlService.createHtmlOutputFromFile('index').addMetaTag('viewport','width=device-width, initial-scale=1').setTitle('บันทึกความผิดพนักงานรายสาขา');
+}
+
+function doPost(event) {
+  let result;
+  try {
+    const raw=event.postData.contents;
+    if(raw.length>6500000) throw Error('ไฟล์แนบใหญ่เกินกำหนด');
+    result={id:submitRecord(JSON.parse(raw))};
+  } catch(error) {
+    result={error:'ส่งเรื่องไม่สำเร็จ กรุณาตรวจข้อมูลแล้วลองอีกครั้ง'};
+  }
+  return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
 }
 
 function submitRecord(data) {
