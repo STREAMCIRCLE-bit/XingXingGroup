@@ -588,7 +588,7 @@ function connect(form,type,branch,fields,photos) {
       });
       if(!response.ok) throw Error("ส่งเรื่องไม่สำเร็จ กรุณาลองอีกครั้ง");
       const result=await response.json();
-      if(result.id!=="XX-"+key) throw Error(result.error || "ยังยืนยันการรับเรื่องไม่ได้ กรุณาลองอีกครั้ง");
+      if(result.id!=="XX-"+key && !(result.key===key && /^XX-\d{6,}$/.test(result.id))) throw Error(result.error || "ยังยืนยันการรับเรื่องไม่ได้ กรุณาลองอีกครั้ง");
       const id=result.id;
       close();openSheet("ส่งเรื่องแล้ว",h("div",{class:"notice",text:"ทีมกลางได้รับเรื่องแล้ว · "+id}));
     }catch(e){err.textContent=e.message || "ส่งไม่สำเร็จ กรุณาลองอีกครั้ง"}finally{btn.disabled=false}

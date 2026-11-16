@@ -7,7 +7,8 @@ function doPost(event) {
   try {
     const raw=event.postData.contents;
     if(raw.length>6500000) throw Error('ไฟล์แนบใหญ่เกินกำหนด');
-    result={id:submitRecord(JSON.parse(raw))};
+    const data=JSON.parse(raw);
+    result={id:submitRecord(data),key:data.key};
   } catch(error) {
     result={error:'ส่งเรื่องไม่สำเร็จ กรุณาตรวจข้อมูลแล้วลองอีกครั้ง'};
   }
@@ -31,7 +32,6 @@ function submitRecord(data) {
     if (typeof image!=='string' || image.length>1200000 || !/^data:image\/jpeg;base64,\/9j\/[A-Za-z0-9+/=]+$/.test(image)) invalid('รูปภาพไม่ถูกต้อง');
     return Utilities.newBlob(Utilities.base64Decode(image.split(',')[1]),'image/jpeg','photo-'+(i+1)+'.jpg');
   });
-  const id='XX-'+data.key;
   const safe=v=>/^[=+@'-]/.test(v)?"'"+v:v;
   const detail=Object.entries(fields).filter(([k,v])=>v).map(([k,v])=>k+' · '+v).join('\n');
   if(detail.length>35000) invalid('ข้อมูลยาวเกินกำหนด');
@@ -40,10 +40,24 @@ function submitRecord(data) {
   lock.waitLock(20000);
   try {
     const last=sheet.getLastRow();
-    if(last>1 && sheet.getRange(2,1,last-1,1).createTextFinder(id).matchEntireCell(true).findNext()) return id;
+    const props=PropertiesService.getScriptProperties();
+    let previous=Number(props.getProperty('lastReceipt') || 0);
+    if (!Number.isSafeInteger(previous) || previous<0) throw Error('เลขลำดับในระบบไม่ถูกต้อง');
+    if(last>1) {
+      const keys=sheet.getRange(2,16,last-1,1).getValues();
+      const ids=sheet.getRange(2,1,last-1,1).getValues();
+      for(let i=0;i<ids.length;i++) {
+        const value=String(ids[i][0]);
+        if(keys[i][0]===data.key || value==='XX-'+data.key) return value;
+        const match=/^XX-(\d+)$/.exec(value);
+        if(match) previous=Math.max(previous,Number(match[1]));
+      }
+    }
+    const next=previous+1;
+    const id='XX-'+String(next).padStart(6,'0');
     const row=last+1, inserted=[];
     try {
-      sheet.appendRow([id,new Date(),safe(data.branch),safe(fields['วันที่']||''),safe(data.type+(fields['ประเภท']?' · '+fields['ประเภท']:'')),safe(detail),'รับเรื่อง',safe(fields['ผู้รับผิดชอบ']||'')]);
+      sheet.appendRow([id,new Date(),safe(data.branch),safe(fields['วันที่']||''),safe(data.type+(fields['ประเภท']?' · '+fields['ประเภท']:'')),safe(detail),'รับเรื่อง',safe(fields['ผู้รับผิดชอบ']||''),'','','','','','','',data.key]);
       photos.forEach((blob,i)=>{
         const image=sheet.insertImage(blob,11+i,row);
         inserted.push(image);
@@ -51,9 +65,10 @@ function submitRecord(data) {
       });
       if(photos.length) sheet.setRowHeight(row,92);
       SpreadsheetApp.flush();
+      props.setProperty('lastReceipt',String(next));
     } catch(e) {
       inserted.forEach(image=>image.remove());
-      if(sheet.getRange(row,1).getValue()===id) sheet.getRange(row,1,1,8).clearContent();
+      if(sheet.getRange(row,1).getValue()===id) sheet.getRange(row,1,1,16).clearContent();
       throw e;
     }
     return id;
