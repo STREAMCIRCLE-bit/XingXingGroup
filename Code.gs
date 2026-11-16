@@ -1,29 +1,49 @@
 function doGet() {
-  return HtmlService.createHtmlOutput(`
-<!doctype html><html lang="th"><meta charset="utf-8"><title>แจ้งเหตุการณ์สาขา</title>
-<style>*{box-sizing:border-box}body{margin:0;background:#fbf6ee;color:#29241f;font:17px/1.6 system-ui,sans-serif}main{max-width:560px;margin:32px auto;padding:24px}header{color:#9a3428;font-weight:700}h1{font-size:32px;margin:8px 0}label{display:block;margin:20px 0 0;font-weight:600}input,select,textarea,button{font:inherit;width:100%;padding:12px;border:1px solid #aa9f94;border-radius:8px;background:white;color:inherit}textarea{resize:vertical}button{background:#933725;color:white;border:0;font-weight:bold;margin-top:20px}button:disabled{opacity:.6}output{display:block;margin-top:12px}</style>
-<main><header>XingXing Group</header><h1>แจ้งเหตุการณ์สาขา</h1><form id="report"><label>สาขา<input name="branch" required maxlength="100"></label><label>วันที่เกิดเหตุ<input name="day" type="date" required></label><label>ประเภทเหตุการณ์<select name="kind" required><option value="">เลือกประเภท</option><option>บริการลูกค้า</option><option>อาหารและครัว</option><option>ออเดอร์และการชำระเงิน</option><option>อุปกรณ์และสถานที่</option><option>การปฏิบัติงาน</option><option>อื่น ๆ</option></select></label><label>รายละเอียดเหตุการณ์<textarea name="detail" rows="4" required maxlength="2500"></textarea></label><button>ส่งเรื่องให้ทีมกลาง</button></form><output id="result" role="status"></output></main>
-<script>const form=document.querySelector('form'),out=document.querySelector('output'),button=form.querySelector('button');let key=crypto.randomUUID();form.onsubmit=function(event){event.preventDefault();button.disabled=true;out.textContent='กำลังส่งเรื่อง…';const data=Object.fromEntries(new FormData(form));data.key=key;google.script.run.withSuccessHandler(function(id){out.textContent='ทีมกลางได้รับเรื่องแล้ว เลขที่ '+id;form.reset();key=crypto.randomUUID();button.disabled=false}).withFailureHandler(function(){out.textContent='ยังยืนยันการรับเรื่องไม่ได้ กรุณาตรวจข้อมูลแล้วส่งอีกครั้ง';button.disabled=false}).submitIncident(data)};</script></html>`).addMetaTag('viewport','width=device-width, initial-scale=1').setTitle('แจ้งเหตุการณ์สาขา · XingXing');
+  return HtmlService.createHtmlOutputFromFile('Index').addMetaTag('viewport','width=device-width, initial-scale=1').setTitle('บันทึกความผิดพนักงานรายสาขา');
 }
 
-function submitIncident(data) {
-  const key = String(data.key || '');
-  const branch = String(data.branch || '').trim();
-  const detail = String(data.detail || '').trim();
-  const day = String(data.day || '');
-  const kinds = ['บริการลูกค้า','อาหารและครัว','ออเดอร์และการชำระเงิน','อุปกรณ์และสถานที่','การปฏิบัติงาน','อื่น ๆ'];
-  if (!/^[a-f0-9]{8}-[a-f0-9]{4}-4[a-f0-9]{3}-[89ab][a-f0-9]{3}-[a-f0-9]{12}$/i.test(key) || !branch || branch.length > 100 || !detail || detail.length > 2500 || !kinds.includes(data.kind) || !/^\d{4}-\d{2}-\d{2}$/.test(day)) throw Error('ข้อมูลไม่ครบ');
-  if (new Date(day).toISOString().slice(0,10) !== day) throw Error('วันที่ไม่ถูกต้อง');
-  const id = 'XX-' + key;
-  const lock = LockService.getScriptLock();
-  lock.waitLock(10000);
+function submitRecord(data) {
+  const required = {
+    'ปัญหาสาขา':['หัวข้อ','ประเภท','วันที่'],
+    'ความผิดพนักงาน':['ชื่อพนักงาน','ประเภท','วันที่','รายละเอียด','ผู้รับผิดชอบ'],
+    'เพิ่มพนักงาน':[data.fields?.['รายชื่อพนักงาน'] ? 'รายชื่อพนักงาน' : 'ชื่อพนักงาน']
+  };
+  const invalid = msg => {throw Error(msg)};
+  if (!Object.hasOwnProperty.call(required,data.type) || !/^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/i.test(data.key) || typeof data.branch!=='string' || !data.branch.trim() || data.branch.length>100) invalid('กรุณาตรวจสอบประเภทและสาขา');
+  const fields=data.fields;
+  if (!fields || Object.keys(fields).length>16 || Object.entries(fields).some(([k,v])=>k.length>40 || typeof v!=='string' || v.length>6000)) invalid('ข้อมูลยาวเกินกำหนด');
+  for (const label of required[data.type]) if (!fields[label]?.trim()) invalid('กรุณากรอก '+label);
+  if (fields['วันที่'] && !/^\d{4}-\d{2}-\d{2}$/.test(fields['วันที่'])) invalid('วันที่ไม่ถูกต้อง');
+  if (!Array.isArray(data.images) || data.images.length>5) invalid('แนบรูปได้ไม่เกิน 5 รูป');
+  const photos=data.images.map((image,i)=>{
+    if (typeof image!=='string' || image.length>1200000 || !/^data:image\/jpeg;base64,\/9j\/[A-Za-z0-9+/=]+$/.test(image)) invalid('รูปภาพไม่ถูกต้อง');
+    return Utilities.newBlob(Utilities.base64Decode(image.split(',')[1]),'image/jpeg','photo-'+(i+1)+'.jpg');
+  });
+  const id='XX-'+data.key;
+  const safe=v=>/^[=+@'-]/.test(v)?"'"+v:v;
+  const detail=Object.entries(fields).filter(([k,v])=>v).map(([k,v])=>k+' · '+v).join('\n');
+  if(detail.length>35000) invalid('ข้อมูลยาวเกินกำหนด');
+  const sheet=SpreadsheetApp.openById(PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID')).getSheetById(0);
+  const lock=LockService.getScriptLock();
+  lock.waitLock(20000);
   try {
-    const sheet = SpreadsheetApp.openById(PropertiesService.getScriptProperties().getProperty('SPREADSHEET_ID')).getSheetById(0);
-    const last = sheet.getLastRow();
-    if (last > 1 && sheet.getRange(2,1,last-1,1).createTextFinder(id).matchEntireCell(true).findNext()) return id;
-    const safe = value => (/^[=+@'-]/.test(value) ? "'" + value : value);
-    sheet.appendRow([id,new Date(),safe(branch),day,data.kind,safe(detail),'รับเรื่อง']);
-    SpreadsheetApp.flush();
+    const last=sheet.getLastRow();
+    if(last>1 && sheet.getRange(2,1,last-1,1).createTextFinder(id).matchEntireCell(true).findNext()) return id;
+    const row=last+1, inserted=[];
+    try {
+      sheet.appendRow([id,new Date(),safe(data.branch),safe(fields['วันที่']||''),safe(data.type+(fields['ประเภท']?' · '+fields['ประเภท']:'')),safe(detail),'รับเรื่อง',safe(fields['ผู้รับผิดชอบ']||'')]);
+      photos.forEach((blob,i)=>{
+        const image=sheet.insertImage(blob,11+i,row);
+        inserted.push(image);
+        image.setAltTextTitle(id+' รูป '+(i+1)).setWidth(110).setHeight(85);
+      });
+      if(photos.length) sheet.setRowHeight(row,92);
+      SpreadsheetApp.flush();
+    } catch(e) {
+      inserted.forEach(image=>image.remove());
+      if(sheet.getRange(row,1).getValue()===id) sheet.getRange(row,1,1,8).clearContent();
+      throw e;
+    }
     return id;
-  } finally { lock.releaseLock(); }
+  } finally {lock.releaseLock()}
 }

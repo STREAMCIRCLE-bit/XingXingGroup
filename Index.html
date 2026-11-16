@@ -1,0 +1,591 @@
+<!doctype html><html lang="th"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>บันทึกความผิดพนักงานรายสาขา</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600&family=Prompt:wght@500;600&display=swap" rel="stylesheet">
+<style>
+/* Layout: phone-first single column; brand sections of branch tiles; bottom nav + floating record button. */
+:root {
+  --bg: #f2f3f6;
+  --surface: #ffffff;
+  --ink: #1a1f2b;
+  --muted: #5c6475;
+  --line: #dde0e8;
+  --accent: #2446c4;
+  --accent-ink: #ffffff;
+  --mala: #c42f2a;
+  --express: #c76f00;
+  --ok: #1d7f47;
+  --warn: #a8670f;
+  --bad: #c22f2f;
+  --ok-bg: #e5f4ea;
+  --warn-bg: #fbf0dc;
+  --bad-bg: #fbe5e3;
+  --chip: #eceef3;
+  --shadow: 0 1px 2px rgba(20,25,40,.06), 0 4px 14px rgba(20,25,40,.06);
+  --f-display: "Prompt", "IBM Plex Sans Thai", "Noto Sans Thai", sans-serif;
+  --f-body: "IBM Plex Sans Thai", "Noto Sans Thai", "Leelawadee UI", Tahoma, sans-serif;
+  color-scheme: light;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #12151c; --surface: #1b1f29; --ink: #e9ebf1; --muted: #9aa2b4; --line: #2c3240;
+    --accent: #7d97ff; --accent-ink: #0d1020; --mala: #ff6f66; --express: #f0a23a;
+    --ok: #5fd08e; --warn: #f0b44f; --bad: #ff7a72;
+    --ok-bg: #173323; --warn-bg: #3a2c12; --bad-bg: #3d1a19; --chip: #262b37;
+    --shadow: 0 1px 2px rgba(0,0,0,.3);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #12151c; --surface: #1b1f29; --ink: #e9ebf1; --muted: #9aa2b4; --line: #2c3240;
+  --accent: #7d97ff; --accent-ink: #0d1020; --mala: #ff6f66; --express: #f0a23a;
+  --ok: #5fd08e; --warn: #f0b44f; --bad: #ff7a72;
+  --ok-bg: #173323; --warn-bg: #3a2c12; --bad-bg: #3d1a19; --chip: #262b37;
+  --shadow: 0 1px 2px rgba(0,0,0,.3);
+  color-scheme: dark;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body { background: var(--bg); color: var(--ink); font: 15px/1.55 var(--f-body); padding-bottom: 96px; -webkit-tap-highlight-color: transparent; }
+h1, h2, h3 { font-family: var(--f-display); font-weight: 600; margin: 0; text-wrap: balance; line-height: 1.25; }
+h1 { font-size: 20px; } h2 { font-size: 18px; } h3 { font-size: 15px; }
+button, input, select, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.num { font-variant-numeric: tabular-nums; }
+.wrap { max-width: 960px; margin: 0 auto; padding: 0 16px; }
+header.top { position: sticky; top: 0; z-index: 20; background: var(--bg); border-bottom: 1px solid var(--line); }
+header.top .wrap { display: flex; flex-direction: column; gap: 10px; padding-top: 12px; padding-bottom: 10px; }
+.title-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.title-row small { color: var(--muted); font-size: 12px; }
+.seg { display: inline-flex; background: var(--chip); border-radius: 10px; padding: 3px; gap: 2px; }
+.seg button { border: 0; background: transparent; padding: 6px 14px; border-radius: 8px; font-weight: 500; color: var(--muted); }
+.seg button[aria-pressed="true"] { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); }
+main { display: flex; flex-direction: column; gap: 20px; padding-top: 16px; }
+.notice { background: var(--warn-bg); color: var(--warn); border-radius: 10px; padding: 10px 12px; font-size: 14px; }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(100px, 1fr)); gap: 10px; }
+.stat { background: var(--surface); border-radius: 12px; padding: 12px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 2px; border: 0; text-align: left; }
+.stat b { font: 600 24px/1.1 var(--f-display); font-variant-numeric: tabular-nums; }
+.stat span { color: var(--muted); font-size: 13px; }
+.stat.bad b { color: var(--bad); } .stat.warn b { color: var(--warn); } .stat.ok b { color: var(--ok); }
+.brand-sec { display: flex; flex-direction: column; gap: 10px; }
+.brand-head { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; }
+.brand-head .mark { width: 10px; height: 10px; border-radius: 3px; align-self: center; }
+.brand-head small { color: var(--muted); }
+.tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 10px; }
+.tile { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; text-align: left; display: flex; flex-direction: column; gap: 6px; min-height: 92px; position: relative; }
+.tile:hover { border-color: var(--accent); }
+.tile .name { font-weight: 600; line-height: 1.3; }
+.tile .fmt { font-size: 12px; color: var(--muted); }
+.tile .counts { margin-top: auto; display: flex; gap: 6px; flex-wrap: wrap; font-size: 12px; }
+.tile.closed { opacity: .55; }
+.badge { display: inline-flex; align-items: center; gap: 4px; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 500; background: var(--chip); color: var(--muted); white-space: nowrap; }
+.badge.open { background: var(--bad-bg); color: var(--bad); }
+.badge.follow { background: var(--warn-bg); color: var(--warn); }
+.badge.closed { background: var(--ok-bg); color: var(--ok); }
+.badge.mala { background: var(--bad-bg); color: var(--mala); }
+.badge.express { background: var(--warn-bg); color: var(--express); }
+.badge.late { background: var(--bad); color: #fff; }
+.badge.issue { background: var(--chip); color: var(--accent); border: 1px solid var(--accent); }
+.badge.p4 { background: var(--bad); color: #fff; } .badge.p3 { background: var(--bad-bg); color: var(--bad); }
+.item.p-4 { border-left-color: var(--bad); } .item.p-3 { border-left-color: #e0731c; } .item.p-2 { border-left-color: var(--warn); } .item.p-1 { border-left-color: var(--line); }
+.linkish { border: 0; background: none; padding: 0; color: var(--accent); font: inherit; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; text-align: left; }
+.profile { display: flex; gap: 14px; align-items: center; }
+.avatar { width: 56px; height: 56px; border-radius: 50%; background: var(--chip); color: var(--accent); display: grid; place-items: center; font: 600 22px var(--f-display); flex: none; }
+.choice { display: flex; flex-direction: column; gap: 10px; }
+.choice button { text-align: left; border: 1px solid var(--line); background: var(--surface); border-radius: 12px; padding: 14px; display: flex; flex-direction: column; gap: 2px; }
+.choice button b { font-family: var(--f-display); font-size: 16px; }
+.choice button span { color: var(--muted); font-size: 14px; }
+.tl .kind { font-size: 12px; font-weight: 600; }
+.tl .dot.inc { background: var(--bad); } .tl .dot.note { background: var(--accent); } .tl .dot.good { background: var(--ok); }
+.ptabs { display: flex; gap: 6px; overflow-x: auto; padding-bottom: 2px; }
+.ptabs button { flex: none; border: 1px solid var(--line); background: var(--surface); color: var(--muted); border-radius: 999px; padding: 7px 14px; font-weight: 500; }
+.ptabs button[aria-current="page"] { background: var(--accent); border-color: var(--accent); color: var(--accent-ink); }
+.flags { display: flex; gap: 4px; flex-wrap: wrap; }
+.scorechip { font: 600 18px/1 var(--f-display); font-variant-numeric: tabular-nums; min-width: 44px; text-align: center; padding: 6px 4px; border-radius: 8px; background: var(--chip); }
+.scorechip.g-a { color: var(--ok); } .scorechip.g-b { color: var(--accent); } .scorechip.g-c { color: var(--warn); background: var(--warn-bg); } .scorechip.g-d { color: var(--bad); background: var(--bad-bg); }
+.trow { display: grid; grid-template-columns: 1fr auto; gap: 6px 12px; align-items: center; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; width: 100%; text-align: left; }
+.trow .n { font-weight: 600; } .trow .s { font-size: 13px; color: var(--muted); }
+.trow .nums { grid-column: 1 / -1; display: flex; gap: 6px 14px; flex-wrap: wrap; font-size: 13px; color: var(--muted); font-variant-numeric: tabular-nums; }
+.trow .nums b { color: var(--ink); font-weight: 600; }
+.feed { display: flex; flex-direction: column; }
+.feed button { display: grid; grid-template-columns: 74px 1fr; gap: 10px; text-align: left; border: 0; border-bottom: 1px solid var(--line); background: none; padding: 9px 0; }
+.feed button:last-child { border-bottom: 0; }
+.feed .d { font-size: 12px; color: var(--muted); font-variant-numeric: tabular-nums; padding-top: 2px; }
+.feed .t { font-size: 14px; } .feed .t b { font-weight: 600; } .feed .t small { color: var(--muted); display: block; font-size: 13px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+details.done summary { cursor: pointer; color: var(--muted); font-size: 14px; padding: 6px 0; }
+.list { display: flex; flex-direction: column; gap: 8px; }
+.item { background: var(--surface); border: 1px solid var(--line); border-left: 4px solid var(--line); border-radius: 10px; padding: 10px 12px; text-align: left; display: flex; flex-direction: column; gap: 4px; width: 100%; }
+.item.sev-1 { border-left-color: var(--warn); } .item.sev-2 { border-left-color: #e0731c; } .item.sev-3 { border-left-color: var(--bad); }
+.item .row1 { display: flex; justify-content: space-between; gap: 8px; align-items: flex-start; }
+.item .who { font-weight: 600; }
+.item .meta { font-size: 13px; color: var(--muted); display: flex; gap: 6px 10px; flex-wrap: wrap; }
+.item .desc { font-size: 14px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.empty { color: var(--muted); padding: 20px; text-align: center; background: var(--surface); border-radius: 12px; border: 1px dashed var(--line); }
+.bar { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; }
+.bar > * { flex: 1 1 140px; }
+.field { display: flex; flex-direction: column; gap: 4px; }
+.field label { font-size: 13px; color: var(--muted); font-weight: 500; }
+.field label .req { color: var(--bad); }
+input[type="text"], input[type="date"], input[type="month"], input[type="search"], input[type="tel"], select, textarea {
+  width: 100%; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; min-height: 44px;
+}
+textarea { min-height: 96px; resize: vertical; }
+.btn { border: 1px solid var(--line); background: var(--surface); border-radius: 10px; padding: 10px 14px; font-weight: 500; min-height: 44px; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
+.btn.danger { color: var(--bad); border-color: var(--bad); background: transparent; }
+.btn.small { min-height: 34px; padding: 5px 10px; font-size: 14px; }
+.btn:disabled { opacity: .55; cursor: default; }
+.back { border: 0; background: none; color: var(--accent); padding: 4px 0; font-weight: 500; align-self: flex-start; }
+.card { background: var(--surface); border-radius: 12px; padding: 14px; box-shadow: var(--shadow); display: flex; flex-direction: column; gap: 12px; }
+.kv { display: grid; grid-template-columns: 130px 1fr; gap: 6px 12px; font-size: 14px; }
+.kv dt { color: var(--muted); } .kv dd { margin: 0; white-space: pre-wrap; word-break: break-word; }
+@media (max-width: 420px) { .kv { grid-template-columns: 1fr; } .kv dt { margin-top: 6px; } }
+.photos { display: grid; grid-template-columns: repeat(auto-fill, minmax(90px, 1fr)); gap: 8px; }
+.ph { position: relative; aspect-ratio: 1; border-radius: 10px; overflow: hidden; background: var(--chip); border: 0; padding: 0; }
+.ph img { width: 100%; height: 100%; object-fit: cover; display: block; }
+.ph .x { position: absolute; top: 4px; right: 4px; width: 26px; height: 26px; border-radius: 50%; border: 0; background: rgba(0,0,0,.6); color: #fff; font-size: 15px; line-height: 1; }
+.ph .missing { display: grid; place-items: center; height: 100%; font-size: 12px; color: var(--muted); }
+.photo-add { display: flex; gap: 8px; flex-wrap: wrap; }
+.photo-add label { flex: 1 1 140px; }
+.sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+.timeline { display: flex; flex-direction: column; gap: 0; }
+.tl { display: grid; grid-template-columns: 14px 1fr; gap: 10px; }
+.tl .dot { width: 10px; height: 10px; border-radius: 50%; background: var(--accent); margin-top: 6px; position: relative; }
+.tl .dot.sys { background: var(--muted); }
+.tl .body { padding-bottom: 14px; border-bottom: 1px solid var(--line); margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px; }
+.tl:last-child .body { border-bottom: 0; margin-bottom: 0; }
+.tl .when { font-size: 12px; color: var(--muted); }
+.tl .txt { white-space: pre-wrap; word-break: break-word; }
+.tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); }
+.tabs button { border: 0; background: none; padding: 8px 12px; color: var(--muted); font-weight: 500; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+.tabs button[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+.emp { display: flex; justify-content: space-between; align-items: center; gap: 10px; background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 10px 12px; width: 100%; text-align: left; }
+.emp .n { font-weight: 600; } .emp .s { font-size: 13px; color: var(--muted); }
+.emp.left { opacity: .6; }
+.grp-title { font-size: 13px; color: var(--muted); font-weight: 600; margin-top: 6px; }
+nav.bottom { position: fixed; left: 0; right: 0; bottom: 0; z-index: 25; background: var(--surface); border-top: 1px solid var(--line); padding-bottom: env(safe-area-inset-bottom); }
+nav.bottom .wrap { display: grid; grid-template-columns: repeat(5, 1fr); padding: 0; }
+nav.bottom button { border: 0; background: none; padding: 9px 4px 8px; font-size: 12px; color: var(--muted); display: flex; flex-direction: column; align-items: center; gap: 2px; }
+nav.bottom button svg { width: 22px; height: 22px; }
+nav.bottom button[aria-current="page"] { color: var(--accent); font-weight: 600; }
+.fab { position: fixed; right: 16px; bottom: calc(72px + env(safe-area-inset-bottom)); z-index: 26; border: 0; border-radius: 999px; background: var(--accent); color: var(--accent-ink); padding: 14px 18px; font-weight: 600; box-shadow: 0 6px 20px rgba(36,70,196,.35); display: flex; gap: 8px; align-items: center; }
+.fab svg { width: 20px; height: 20px; }
+.overlay { position: fixed; inset: 0; z-index: 40; background: rgba(10,12,20,.5); display: flex; align-items: flex-end; justify-content: center; }
+.sheet { background: var(--bg); width: 100%; max-width: 640px; max-height: 92%; overflow: auto; border-radius: 16px 16px 0 0; padding: 16px 16px calc(20px + env(safe-area-inset-bottom)); display: flex; flex-direction: column; gap: 14px; }
+@media (min-width: 700px) { .overlay { align-items: center; } .sheet { border-radius: 16px; max-height: 88%; } }
+.sheet-head { display: flex; justify-content: space-between; align-items: center; gap: 10px; position: sticky; top: -16px; background: var(--bg); padding: 4px 0 8px; z-index: 1; }
+.sheet-head .btn { min-height: 36px; }
+.grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+@media (max-width: 480px) { .grid2 { grid-template-columns: 1fr; } }
+.form { display: flex; flex-direction: column; gap: 12px; }
+.err { color: var(--bad); font-size: 14px; }
+.progress { color: var(--muted); font-size: 14px; }
+.lightbox { position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,.92); display: grid; place-items: center; padding: 16px; }
+.lightbox img { max-width: 100%; max-height: 100%; object-fit: contain; }
+.lightbox button { position: absolute; top: 12px; right: 12px; background: rgba(255,255,255,.15); color: #fff; border: 0; border-radius: 999px; padding: 8px 14px; }
+table.rep { width: 100%; border-collapse: collapse; font-size: 14px; }
+table.rep th, table.rep td { padding: 8px 6px; border-bottom: 1px solid var(--line); text-align: right; font-variant-numeric: tabular-nums; }
+table.rep th:first-child, table.rep td:first-child { text-align: left; }
+table.rep th { color: var(--muted); font-weight: 500; font-size: 13px; }
+table.rep tr.brandrow td { font-weight: 600; background: var(--chip); }
+.scroll { overflow-x: auto; }
+.hbar { display: grid; grid-template-columns: 150px 1fr 36px; gap: 8px; align-items: center; font-size: 14px; }
+.hbar .track { height: 10px; background: var(--chip); border-radius: 5px; overflow: hidden; }
+.hbar .fill { height: 100%; background: var(--accent); border-radius: 5px; }
+.hbar b { text-align: right; font-variant-numeric: tabular-nums; font-weight: 600; }
+.confirm { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; background: var(--bad-bg); padding: 10px; border-radius: 10px; color: var(--bad); }
+.status-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.status-btns .btn[aria-pressed="true"] { border-width: 2px; font-weight: 600; }
+.status-btns .open[aria-pressed="true"] { border-color: var(--bad); color: var(--bad); }
+.status-btns .follow[aria-pressed="true"] { border-color: var(--warn); color: var(--warn); }
+.status-btns .closed[aria-pressed="true"] { border-color: var(--ok); color: var(--ok); }
+.toast { position: fixed; left: 50%; transform: translateX(-50%); bottom: calc(140px + env(safe-area-inset-bottom)); background: var(--ink); color: var(--bg); padding: 10px 16px; border-radius: 10px; z-index: 70; font-size: 14px; }
+@media (prefers-reduced-motion: no-preference) { .sheet { animation: up .18s ease-out; } @keyframes up { from { transform: translateY(24px); opacity: .6; } } }
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <div class="title-row">
+    <div><h1>บันทึกความผิดพนักงาน</h1><small id="sync">กำลังเชื่อมต่อฐานข้อมูล…</small></div>
+    <button type="button" class="btn small" id="addEmp" hidden>+ เพิ่มพนักงาน</button>
+  </div>
+  <div class="seg" role="group" aria-label="เลือกแบรนด์" id="brandSeg"></div>
+</div></header>
+<main class="wrap" id="main"></main>
+<button class="fab" id="fab" type="button" aria-label="บันทึกข้อมูลใหม่">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>บันทึก
+</button>
+<nav class="bottom" aria-label="เมนูหลัก"><div class="wrap" id="nav"></div></nav>
+<div id="layer"></div>
+
+<script>
+"use strict";
+/* ---------- Branch master list (from the company list) ---------- */
+const BRANDS = [
+  { id: "mala", name: "Mala", color: "var(--mala)", branches: [
+    ["m01","วงเวียนใหญ่","Shabu"],["m02","พระราม 3","Shabu"],["m03","พุทธมณฑลสาย 2","Shabu"],
+    ["m04","บางบอน 5","Shabu"],["m05","บรมสิรินธร","Shabu"] ] },
+  { id: "express", name: "Express", color: "var(--express)", branches: [
+    ["e01","มหานคร","Go (ไม่มี Delivery)",1],["e02","ติวานนท์ 28","Delivery Only"],["e03","บางนา","Go"],
+    ["e04","ทาวน์อินทาวน์","Go"],["e05","สีลม","Go*"],["e06","สระบุรี","Go"],["e07","ลาดพร้าว 12","Delivery Only"],
+    ["e08","นวมินทร์","ตักชั่ง"],["e09","วิภาวดี","Delivery Only"],["e10","บรรทัดทอง","Go",1],["e11","ลาดพร้าว 71","ตักชั่ง"],
+    ["e12","เกษตร","ตักชั่ง"],["e13","ราชพฤกษ์","Go"],["e14","The Nine พระราม 9","Delivery Only*"],["e15","บางแค","ตักชั่ง"],
+    ["e16","เพชรเกษม","Delivery Only"],["e17","บางใหญ่","Delivery Only"],["e18","ลาดกระบัง","Go"],["e19","สนามเป้า","ตักชั่ง"],
+    ["e20","สาธุ 19","ตักชั่ง"],["e21","ติวานนท์ T10","ตักชั่ง"],["e22","คลอง 3","ตักชั่ง"],["e23","ปู่เจ้า","ตักชั่ง"],
+    ["e24","กิ่งแก้ว","ตักชั่ง"],["e25","รัตนธิเบศร์","ตักชั่ง"],["e26","อ้อมใหญ่","ตักชั่ง"],["e27","สามเสน","Go"],
+    ["e28","อุดมสุข 45","ตักชั่ง"],["e29","วชิรธรรม","ตักชั่ง"],["e30","ตำหรุ บางพลี","ตักชั่ง"],
+    ["e31","บางพลัด / Lotus จรัญ","ตักชั่ง"],["e32","วัดลาดปลาดุก","ตักชั่ง"],["e33","หนามแดง","ตักชั่ง"],
+    ["e34","จรัญ","ตักชั่ง"],["e35","ห้วยขวาง","ตักชั่ง"],["e36","เยาวราช","ตักชั่ง"],["e37","วิภา","ตักชั่ง"] ] }
+];
+const BR = {};
+BRANDS.forEach(b => b.branches.forEach(([id, name, fmt, closed]) => { BR[id] = { id, name, fmt, closed: !!closed, brand: b.id, brandName: b.name }; }));
+const brandOf = id => BRANDS.find(b => b.id === id);
+
+const CATS = ["มาสาย / ขาดงาน / ออกก่อนเวลา","ความสะอาด / สุขอนามัยอาหาร","ไม่ปฏิบัติตาม SOP / สูตร","บริการลูกค้า / มารยาท","เงินขาด / เงินเกิน / ทุจริต","วัตถุดิบเสียหาย / สูญหาย","การแต่งกาย / ยูนิฟอร์ม","ความปลอดภัย / อุปกรณ์","ใช้โทรศัพท์ระหว่างงาน","อื่นๆ"];
+const SEV = { 1: "เล็กน้อย", 2: "ปานกลาง", 3: "ร้ายแรง" };
+const ACTIONS = ["ยังไม่ลงโทษ","ตักเตือนด้วยวาจา","ตักเตือนเป็นลายลักษณ์อักษร","หักค่าจ้าง / ชดใช้","พักงาน","เลิกจ้าง"];
+const STATUS = { open: "เปิดเรื่อง", follow: "กำลังติดตาม", closed: "ปิดเรื่องแล้ว" };
+const ISSUE_CATS = ["อุปกรณ์ / เครื่องครัวเสีย","อาคาร / ซ่อมบำรุง","พนักงานไม่พอ / ขาดคน","วัตถุดิบ / ของส่งไม่ครบ","ความสะอาด / แมลง / สัตว์รบกวน","ลูกค้าร้องเรียน","ระบบ POS / Delivery / อินเทอร์เน็ต","ยอดขาย / ต้นทุน","ความปลอดภัย","อื่นๆ"];
+const PRIO = { 1: "ต่ำ", 2: "ปานกลาง", 3: "สูง", 4: "ด่วนมาก" };
+const ISTATUS = { open: "รอแก้ไข", doing: "กำลังแก้ไข", done: "แก้ไขแล้ว" };
+const ISCLS = { open: "open", doing: "follow", done: "closed" };
+const NOTE_TYPES = ["บันทึกทั่วไป","ชมเชย / ผลงานดี","ตักเตือน (ไม่เป็นทางการ)","อบรม / ฝึกงาน","โยกย้ายสาขา","เปลี่ยนตำแหน่ง / ปรับเงินเดือน","ลา / ขาดงาน","ประเมินผลงาน"];
+
+/* ---------- State ---------- */
+const S = {
+  db: null, user: null, assets: null, uid: null, canWrite: null,
+  incidents: [], employees: [], issues: [], loadedInc: false, loadedEmp: false, loadedIss: false, offline: false, readonly: false,
+  view: "home", brand: "all", branchId: null, branchTab: "iss", incidentId: null, empId: null, issueId: null,
+  logs: [], logsFor: null, logsUnsub: null,
+  detailKey: null, detailUnsub: null, detail: [],
+  f: { status: "all", q: "", month: "", branch: "" },
+  fi: { status: "active", q: "", branch: "", prio: "" },
+  pf: { branch: "", q: "", showLeft: false },
+  tf: { branch: "", q: "", days: 90, sort: "risk", only: "watch" }, notes: [], loadedNotes: false,
+  month: new Date().toISOString().slice(0, 7),
+  names: {}
+};
+
+/* ---------- Helpers ---------- */
+function h(tag, attrs, ...kids) {
+  const el = document.createElement(tag);
+  if (attrs) for (const k in attrs) {
+    const v = attrs[k];
+    if (v == null || v === false) continue;
+    if (k === "class") el.className = v;
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2), v);
+    else if (k === "text") el.textContent = v;
+    else el.setAttribute(k, v === true ? "" : v);
+  }
+  for (const c of kids.flat(Infinity)) if (c != null && c !== false) el.append(c.nodeType ? c : String(c));
+  return el;
+}
+const today = () => { const d = new Date(); d.setMinutes(d.getMinutes() - d.getTimezoneOffset()); return d.toISOString().slice(0, 10); };
+const fmtDate = s => { if (!s) return "-"; const d = new Date(s + "T00:00:00"); return isNaN(d) ? s : d.toLocaleDateString("th-TH", { day: "numeric", month: "short", year: "2-digit" }); };
+const fmtTime = ms => new Date(ms).toLocaleString("th-TH", { day: "numeric", month: "short", year: "2-digit", hour: "2-digit", minute: "2-digit" });
+const isLate = i => i.dueDate && i.status !== "closed" && i.dueDate < today();
+const empById = id => S.employees.find(e => e.id === id);
+function toast(msg) { const t = h("div", { class: "toast", role: "status", text: msg }); document.body.append(t); setTimeout(() => t.remove(), 2600); }
+function brandMatch(brandId) { return S.brand === "all" || S.brand === brandId; }
+function statusBadge(s) { return h("span", { class: "badge " + s, text: STATUS[s] || s }); }
+function branchSelect(id, value, opts = {}) {
+  const sel = h("select", { id });
+  if (opts.any) sel.append(h("option", { value: "", text: opts.any }));
+  BRANDS.forEach(b => {
+    if (opts.brandFilter && !brandMatch(b.id)) return;
+    const g = h("optgroup", { label: b.name });
+    b.branches.forEach(([bid]) => { const x = BR[bid]; if (x.closed && !opts.includeClosed && bid !== value) return; g.append(h("option", { value: bid, text: x.name + (x.closed ? " (ปิดแล้ว)" : "") })); });
+    sel.append(g);
+  });
+  sel.value = value || "";
+  return sel;
+}
+
+/* ---------- Photos: compress on the phone, upload as asset; fall back to a small inline copy ---------- */
+function loadImage(file) {
+  return new Promise((res, rej) => { const url = URL.createObjectURL(file); const img = new Image(); img.onload = () => { URL.revokeObjectURL(url); res(img); }; img.onerror = () => { URL.revokeObjectURL(url); rej(new Error("อ่านรูปไม่ได้")); }; img.src = url; });
+}
+async function compress(file, max, q, asDataUrl) {
+  const img = await loadImage(file);
+  const r = Math.min(1, max / Math.max(img.naturalWidth, img.naturalHeight));
+  const c = document.createElement("canvas"); c.width = Math.round(img.naturalWidth * r); c.height = Math.round(img.naturalHeight * r);
+  c.getContext("2d").drawImage(img, 0, 0, c.width, c.height);
+  if (asDataUrl) return c.toDataURL("image/jpeg", q);
+  return new Promise(res => c.toBlob(res, "image/jpeg", q));
+}
+function photoPicker(pending, existing) {
+  const box = h("div", { class: "form" });
+  const grid = h("div", { class: "photos" });
+  const draw = () => {
+    grid.replaceChildren();
+    existing.forEach((r, i) => grid.append(h("div", { class: "ph" }, photoImg(r), h("button", { class: "x", type: "button", "aria-label": "ลบรูป", text: "×", onclick: () => { existing.splice(i, 1); draw(); } }))));
+    pending.forEach((f, i) => { const u = URL.createObjectURL(f); grid.append(h("div", { class: "ph" }, h("img", { src: u, alt: "รูปที่เลือก" }), h("button", { class: "x", type: "button", "aria-label": "ลบรูป", text: "×", onclick: () => { pending.splice(i, 1); draw(); } }))); });
+  };
+  const uid = Math.random().toString(36).slice(2, 7);
+  const add = e => { for (const f of e.target.files) if (f.type.startsWith("image/")) pending.push(f); e.target.value = ""; draw(); };
+  const cam = h("input", { type: "file", accept: "image/*", capture: "environment", class: "sr", id: "cam-" + uid, onchange: add });
+  const gal = h("input", { type: "file", accept: "image/*", multiple: true, class: "sr", id: "gal-" + uid, onchange: add });
+  box.append(
+    h("div", { class: "photo-add" },
+      h("label", { class: "btn", for: "cam-" + uid }, "📷 ถ่ายรูป"), cam,
+      h("label", { class: "btn", for: "gal-" + uid }, "เลือกจากคลังภาพ"), gal),
+    grid);
+  draw();
+  return box;
+}
+const ICONS = {
+  home: '<path d="M3 11l9-7 9 7v9a1 1 0 0 1-1 1h-5v-6h-6v6H4a1 1 0 0 1-1-1z"/>',
+  list: '<path d="M8 6h13M8 12h13M8 18h13M3.5 6h.01M3.5 12h.01M3.5 18h.01"/>',
+  people: '<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c.8-3.6 3.4-5.5 6.5-5.5s5.7 1.9 6.5 5.5M16 4.8a3.4 3.4 0 0 1 0 6.4M18 14.8c2 .7 3.2 2.5 3.6 5.2"/>',
+  report: '<path d="M4 20V10M10 20V4M16 20v-7M22 20H2"/>',
+  issue: '<path d="M12 3l9.5 16.5h-19z"/><path d="M12 10v4M12 17h.01"/>'
+};
+function drawChrome() {
+  const seg = document.getElementById("brandSeg"); seg.replaceChildren();
+  [["all", "ทั้งหมด"], ...BRANDS.map(b => [b.id, b.name])].forEach(([id, t]) => seg.append(h("button", { type: "button", "aria-pressed": S.brand === id ? "true" : "false", text: t, onclick: () => { S.brand = id; if (S.view === "branch" && BR[S.branchId]?.brand !== id && id !== "all") S.view = "home"; render(); } })));
+  const nav = document.getElementById("nav"); nav.replaceChildren();
+  [["home", "สาขา"], ["issues", "ปัญหาสาขา"], ["list", "ความผิด"], ["people", "พนักงาน"], ["report", "สรุป"]].forEach(([v, t]) => {
+    const cur = S.view === v || (v === "home" && S.view === "branch") || (v === "list" && S.view === "incident") || (v === "people" && ["employee", "book", "track"].includes(S.view)) || (v === "issues" && S.view === "issue");
+    const b = h("button", { type: "button", "aria-current": cur ? "page" : null, onclick: () => go(v, null, true) });
+    b.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">' + (ICONS[v] || ICONS.issue) + "</svg>";
+    b.append(h("span", { text: t }));
+    nav.append(b);
+  });
+  document.getElementById("addEmp").hidden = false;
+  document.getElementById("sync").textContent = "ส่งเรื่องให้ทีมกลาง · ประวัติดูได้ในชีต";
+}
+function back(){go("home")}
+function go(view, extra) {
+  if(view==="issues") return openIssueForm(null,extra?.fi?.branch || "");
+  if(view==="list") return openIncidentForm(null,extra?.f?.branch || "");
+  if(view==="people") return openEmployeeForm(null,"");
+  if(view==="report") return openSheet("สรุป",h("div",{class:"empty",text:"ทีมกลางดูสรุปและติดตามเรื่องได้ในชีต"}));
+  S.view=view;Object.assign(S,extra||{});render();window.scrollTo(0,0);
+}
+function render(){drawChrome();document.getElementById("main").replaceChildren(...(S.view==="branch"?viewBranch():viewHome()));}
+
+/* ---------- Views ---------- */
+function statsRow(list, issues, branch) {
+  const open = list.filter(i => i.status === "open").length, fol = list.filter(i => i.status === "follow").length, late = list.filter(isLate).length;
+  const mk = (cls, n, t, st) => h("button", { type: "button", class: "stat " + cls, onclick: () => go("list", { f: { ...S.f, status: st, branch: branch || "" } }) }, h("b", { text: "—" }), h("span", { text: "ความผิด" + t }));
+  const tiles = [];
+  if (issues) {
+    const act = issues.filter(x => x.status !== "done"), hot = act.filter(x => x.priority >= 3).length;
+    const mi = (cls, n, t, fi) => h("button", { type: "button", class: "stat " + cls, onclick: () => go("issues", { fi: { ...S.fi, ...fi, branch: branch || "" } }) }, h("b", { text: "—" }), h("span", { text: t }));
+    tiles.push(mi(act.length ? "warn" : "ok", act.length, "ปัญหาสาขาค้าง", { status: "active", prio: "" }), mi(hot ? "bad" : "ok", hot, "ปัญหาสูง / ด่วน", { status: "active", prio: "3" }));
+  }
+  tiles.push(mk("bad", open, "เปิดเรื่อง", "open"), mk("warn", fol, "กำลังติดตาม", "follow"), mk(late ? "bad" : "ok", late, "เกินกำหนด", "late"));
+  return h("div", { class: "stats" }, tiles);
+}
+function viewHome() {
+  const vis = S.incidents.filter(i => brandMatch(i.brand));
+  const out = [];
+  if (S.offline && !S.db) out.push(h("div", { class: "notice", text: "หน้านี้ต้องลงชื่อเข้าใช้ Claude จึงจะดูและบันทึกข้อมูลได้ ตอนนี้แสดงเฉพาะรายชื่อสาขา" }));
+  const visIss = S.issues.filter(x => brandMatch(x.brand));
+  out.push(statsRow(vis, visIss));
+  BRANDS.filter(b => brandMatch(b.id)).forEach(b => {
+    const ids = b.branches.map(x => x[0]);
+    const order = [...ids].sort((a, c) => (BR[a].closed - BR[c].closed));
+    const openCount = vis.filter(i => i.brand === b.id && i.status !== "closed").length;
+    out.push(h("section", { class: "brand-sec" },
+      h("div", { class: "brand-head" }, h("span", { class: "mark", style: "background:" + b.color }), h("h2", { text: b.name }),
+        h("small", { class: "num", text: `${ids.filter(i => !BR[i].closed).length} สาขาที่เปิดอยู่` })),
+      h("div", { class: "tiles" }, order.map(id => {
+        const br = BR[id], li = vis.filter(i => i.branchId === id);
+        const o = li.filter(i => i.status === "open").length, f = li.filter(i => i.status === "follow").length, late = li.filter(isLate).length;
+        const iss = visIss.filter(x => x.branchId === id && x.status !== "done"), hot = iss.some(x => x.priority >= 3);
+        return h("button", { type: "button", class: "tile" + (br.closed ? " closed" : ""), onclick: () => go("branch", { branchId: id, branchTab: "iss" }) },
+          h("span", { class: "name", text: br.name }),
+          h("span", { class: "fmt", text: br.fmt + (br.closed ? " · ปิดแล้ว" : "") }),
+          h("span", { class: "counts num" },
+            iss.length ? h("span", { class: "badge " + (hot ? "p3" : "issue"), text: "ปัญหา " + iss.length }) : null,
+            o ? h("span", { class: "badge open", text: "เปิด " + o }) : null,
+            f ? h("span", { class: "badge follow", text: "ติดตาม " + f }) : null,
+            late ? h("span", { class: "badge late", text: "เกินกำหนด " + late }) : null,
+            !o && !f && !iss.length ? h("span", { class: "badge", text: li.length ? `ความผิด ${li.length} เรื่อง` : br.closed ? "ปิดแล้ว" : "เลือกสาขา" }) : null));
+      }))));
+  });
+  return out;
+}
+function viewBranch() {
+  const br = BR[S.branchId]; if (!br) return viewHome();
+  const list = S.incidents.filter(i => i.branchId === br.id);
+  const emps = S.employees.filter(e => e.branchId === br.id).sort((a, b) => (a.status === "left") - (b.status === "left") || a.name.localeCompare(b.name, "th"));
+  const iss = [];
+  const act = iss.filter(x => x.status !== "done"), done = iss.filter(x => x.status === "done");
+  const tab = (k, t) => h("button", { type: "button", role: "tab", "aria-selected": S.branchTab === k ? "true" : "false", text: t, onclick: () => { S.branchTab = k; render(); } });
+  const tabs = h("div", { class: "tabs", role: "tablist" },
+    tab("iss", `ปัญหาสาขา `), tab("inc", `ความผิด `), tab("emp", `พนักงาน `));
+  let body;
+  if (S.branchTab === "iss") body = h("div", { class: "list" },
+    S.readonly ? null : h("button", { type: "button", class: "btn", text: "+ บันทึกปัญหาของสาขานี้", onclick: () => openIssueForm(null, br.id) }),
+    act.length ? act.map(issueItem) : h("div", { class: "empty", text: "ส่งปัญหาของสาขานี้ให้ทีมกลาง" }),
+    done.length ? h("details", { class: "done" }, h("summary", { text: `ปัญหาที่แก้ไขแล้ว (${done.length})` }), h("div", { class: "list" }, done.map(issueItem))) : null);
+  else if (S.branchTab === "inc") body = h("div", { class: "list" },
+    S.readonly ? null : h("button", { type: "button", class: "btn", text: "+ บันทึกความผิดของสาขานี้", onclick: () => openIncidentForm(null, br.id) }),
+    list.length ? list.map(i => incItem(i, false)) : h("div", { class: "empty", text: "ส่งบันทึกความผิดให้ทีมกลาง" }));
+  else body = h("div", { class: "list" },
+    S.readonly ? null : h("button", { type: "button", class: "btn", text: "+ เพิ่มพนักงานสาขานี้", onclick: () => openEmployeeForm(null, br.id) }),
+    emps.length ? emps.map(empRow) : h("div", { class: "empty", text: "ส่งข้อมูลพนักงานให้ทีมกลาง" }));
+  return [
+    h("button", { type: "button", class: "back", text: "‹ กลับ", onclick: back }),
+    h("div", { class: "brand-head" }, h("span", { class: "badge " + br.brand, text: br.brandName }), h("h2", { text: "สาขา" + br.name }), h("small", { text: br.fmt + (br.closed ? " · ปิดแล้ว" : "") })),
+    statsRow(list, iss, br.id),
+    tabs, body
+  ];
+}
+function openRecordChooser() {
+  const ctxBranch = S.view === "branch" ? S.branchId : S.view === "issue" ? S.issues.find(x => x.id === S.issueId)?.branchId : "";
+  const emp = S.view === "employee" ? empById(S.empId) : null;
+  let close;
+  const pick = fn => () => { close(); fn(); };
+  const box = h("div", { class: "choice" },
+    h("button", { type: "button", onclick: pick(() => emp ? openIncidentForm({ offenderId: emp.id, branchId: emp.branchId, __prefill: true }) : openIncidentForm(null, ctxBranch)) },
+      h("b", { text: "บันทึกความผิดพนักงาน" }), h("span", { text: emp ? "ของ " + emp.name : "ผู้กระทำผิด ประเภท ระดับ ผู้ติดตาม พร้อมรูปหลักฐาน" })),
+    h("button", { type: "button", onclick: pick(() => openIssueForm(null, emp ? emp.branchId : ctxBranch)) },
+      h("b", { text: "บันทึกปัญหาสาขา" }), h("span", { text: "อุปกรณ์เสีย ขาดคน ของไม่ครบ ลูกค้าร้องเรียน และอื่นๆ" })),
+    emp ? h("button", { type: "button", onclick: pick(() => openNoteForm(emp)) }, h("b", { text: "บันทึกประวัติพนักงาน" }), h("span", { text: "ชมเชย อบรม โยกย้าย ลา ประเมินผล" })) : null,
+    h("button", { type: "button", onclick: pick(() => openEmployeeForm(null, emp ? emp.branchId : ctxBranch)) }, h("b", { text: "เพิ่มพนักงานใหม่" }), h("span", { text: "ทีละคน หรือวางรายชื่อหลายคนพร้อมกัน" })));
+  close = openSheet("ต้องการบันทึกอะไร", box);
+}
+
+function openSheet(title, content, onClose) {
+  const layer = document.getElementById("layer");
+  const close = () => { layer.replaceChildren(); document.body.style.overflow = ""; onClose && onClose(); };
+  const ov = h("div", { class: "overlay", role: "dialog", "aria-modal": "true", "aria-label": title },
+    h("div", { class: "sheet" }, h("div", { class: "sheet-head" }, h("h2", { text: title }), h("button", { type: "button", class: "btn small", text: "ปิด", onclick: close })), content));
+  ov.addEventListener("click", e => { if (e.target === ov) close(); });
+  layer.replaceChildren(ov); document.body.style.overflow = "hidden";
+  return close;
+}
+function fld(label, input, req) { return h("div", { class: "field" }, h("label", { for: input.id }, label, req ? h("span", { class: "req", text: " *" }) : null), input); }
+function openIssueForm(existing, branchId) {
+  const e = existing || {};
+  const pending = [], keep = (e.photos || []).slice();
+  const title = h("input", { type: "text", id: "s-title", value: e.title || "", placeholder: "เช่น ตู้แช่หมูไม่เย็น, ขาดพนักงานกะเย็น 2 คน", autocomplete: "off" });
+  const date = h("input", { type: "date", id: "s-date", value: e.date || today(), max: today() });
+  const branch = branchSelect("s-branch", e.branchId || branchId || "", { any: "— เลือกสาขา —", brandFilter: !existing });
+  const cat = h("select", { id: "s-cat" }, h("option", { value: "", text: "— เลือกประเภท —" }), ISSUE_CATS.map(c => h("option", { value: c, text: c })));
+  cat.value = e.category || "";
+  const prio = h("select", { id: "s-prio" }, Object.entries(PRIO).map(([k, v]) => h("option", { value: k, text: v })));
+  prio.value = String(e.priority || 2);
+  const detail = h("textarea", { id: "s-detail", placeholder: "อาการของปัญหา เริ่มเมื่อไร แจ้งใครไปแล้วบ้าง" }); detail.value = e.detail || "";
+  const impact = h("input", { type: "text", id: "s-impact", value: e.impact || "", placeholder: "เช่น ขายเมนูหมูไม่ได้, รอคิวนานขึ้น", autocomplete: "off" });
+  const dl = h("datalist", { id: "s-resp-list" }, [...new Set(S.employees.filter(x => x.status !== "left").map(x => x.name).concat(S.issues.map(x => x.responsible).filter(Boolean)))].map(n => h("option", { value: n })));
+  const resp = h("input", { type: "text", id: "s-resp", list: "s-resp-list", value: e.responsible || "", placeholder: "เช่น ผู้จัดการสาขา, ฝ่ายซ่อมบำรุง", autocomplete: "off" });
+  const due = h("input", { type: "date", id: "s-due", value: e.dueDate || "" });
+  const err = h("div", { class: "err", role: "alert" }), prog = h("div", { class: "progress", "aria-live": "polite" });
+  const save = h("button", { type: "submit", class: "btn primary", text: existing ? "บันทึกการแก้ไข" : "บันทึกปัญหา" });
+  const form = h("form", { class: "form", novalidate: true },
+    fld("หัวข้อปัญหา", title, true),
+    h("div", { class: "grid2" }, fld("วันที่พบปัญหา", date, true), fld("สาขา", branch, true)),
+    h("div", { class: "grid2" }, fld("ประเภทปัญหา", cat, true), fld("ความเร่งด่วน", prio)),
+    fld("รายละเอียด", detail), fld("ผลกระทบต่อการขาย / บริการ", impact),
+    h("div", { class: "grid2" }, fld("ผู้รับผิดชอบแก้ไข", resp), fld("กำหนดแก้ไขเสร็จ", due)),
+    h("div", { class: "field" }, h("label", { text: "รูปถ่าย" }), photoPicker(pending, keep)),
+    dl, err, prog, save);
+  connect(form,"ปัญหาสาขา",branch,()=>({"หัวข้อ":title.value.trim(),"วันที่":date.value.trim(),"ประเภท":cat.value.trim(),"ความเร่งด่วน":prio.value.trim(),"รายละเอียด":detail.value.trim(),"ผลกระทบ":impact.value.trim(),"ผู้รับผิดชอบ":resp.value.trim(),"กำหนดติดตาม":due.value.trim()}),pending);
+}
+function openIncidentForm(existing, branchId) {
+  const e = existing || {};
+  const pending = [], keep = (e.photos || []).slice();
+  const date = h("input", { type: "date", id: "i-date", value: e.date || today(), max: today(), required: true });
+  const branch = branchSelect("i-branch", e.branchId || branchId || "", { any: "— เลือกสาขา —", brandFilter: !existing });
+  const offSel = h("select", { id: "i-off" });
+  const offNew = h("input", { type: "text", id: "i-offnew", placeholder: "ชื่อ-นามสกุล (ชื่อเล่น)", autocomplete: "off" });
+  const offNewPos = h("input", { type: "text", id: "i-offpos", placeholder: "ตำแหน่ง เช่น พนักงานครัว", autocomplete: "off" });
+  const newBox = h("div", { class: "grid2" }, fld("ชื่อพนักงานใหม่", offNew, true), fld("ตำแหน่ง", offNewPos));
+  const fillOff = () => {
+    const emps = S.employees.filter(x => x.branchId === branch.value && x.status !== "left").sort((a, b) => a.name.localeCompare(b.name, "th"));
+    offSel.replaceChildren(h("option", { value: "", text: branch.value ? "— เลือกพนักงาน —" : "เลือกสาขาก่อน" }),
+      ...emps.map(x => h("option", { value: x.id, text: x.name + (x.nickname ? ` (${x.nickname})` : "") + (x.position ? " · " + x.position : "") })),
+      h("option", { value: "__new", text: "+ พิมพ์ชื่อพนักงานใหม่" }));
+    if (e.offenderId && emps.some(x => x.id === e.offenderId)) offSel.value = e.offenderId;
+    else if (existing && e.offenderName) { offSel.value = "__new"; offNew.value = e.offenderName; }
+    else if (branch.value && !emps.length) offSel.value = "__new";
+    newBox.hidden = offSel.value !== "__new";
+  };
+  branch.onchange = () => { e.offenderId = null; fillOff(); };
+  offSel.onchange = () => { newBox.hidden = offSel.value !== "__new"; if (!newBox.hidden) offNew.focus(); };
+  const cat = h("select", { id: "i-cat" }, h("option", { value: "", text: "— เลือกประเภท —" }), CATS.map(c => h("option", { value: c, text: c })));
+  cat.value = e.category || "";
+  const sev = h("select", { id: "i-sev" }, Object.entries(SEV).map(([k, v]) => h("option", { value: k, text: v })));
+  sev.value = String(e.severity || 1);
+  const act = h("select", { id: "i-act" }, ACTIONS.map(a => h("option", { value: a, text: a })));
+  act.value = e.action || ACTIONS[0];
+  const desc = h("textarea", { id: "i-desc", placeholder: "เกิดอะไรขึ้น เวลา สถานที่ พยาน ความเสียหาย" }); desc.value = e.description || "";
+  const dl = h("datalist", { id: "resp-list" }, [...new Set(S.employees.filter(x => x.status !== "left").map(x => x.name).concat(S.incidents.map(x => x.responsible).filter(Boolean)))].map(n => h("option", { value: n })));
+  const resp = h("input", { type: "text", id: "i-resp", list: "resp-list", placeholder: "เช่น ผู้จัดการสาขา / Area Manager", value: e.responsible || "", autocomplete: "off" });
+  const due = h("input", { type: "date", id: "i-due", value: e.dueDate || "" });
+  const err = h("div", { class: "err", role: "alert" }), prog = h("div", { class: "progress", "aria-live": "polite" });
+  const save = h("button", { type: "submit", class: "btn primary", text: existing ? "บันทึกการแก้ไข" : "บันทึกความผิด" });
+  const form = h("form", { class: "form", novalidate: true },
+    h("div", { class: "grid2" }, fld("วันที่เกิดเหตุ", date, true), fld("สาขา", branch, true)),
+    fld("ผู้กระทำผิด", offSel, true), newBox,
+    h("div", { class: "grid2" }, fld("ประเภทความผิด", cat, true), fld("ระดับความร้ายแรง", sev)),
+    fld("รายละเอียด", desc, true),
+    h("div", { class: "grid2" }, fld("ผู้รับผิดชอบติดตามผล", resp, true), fld("กำหนดติดตามภายใน", due)),
+    fld("การลงโทษ", act),
+    h("div", { class: "field" }, h("label", { text: "รูปถ่ายหลักฐาน" }), photoPicker(pending, keep)),
+    dl, err, prog, save);
+  fillOff();
+  connect(form,"ความผิดพนักงาน",branch,()=>({"วันที่":date.value.trim(),"ชื่อพนักงาน":offNew.value.trim(),"ตำแหน่ง":offNewPos.value.trim(),"ประเภท":cat.value.trim(),"ระดับ":sev.value.trim(),"การลงโทษ":act.value.trim(),"รายละเอียด":desc.value.trim(),"ผู้รับผิดชอบ":resp.value.trim(),"กำหนดติดตาม":due.value.trim()}),pending);
+}
+function openEmployeeForm(existing, branchId) {
+  const e = existing || {};
+  let mode = "one";
+  const name = h("input", { type: "text", id: "e-name", value: e.name || "", autocomplete: "off" });
+  const nick = h("input", { type: "text", id: "e-nick", value: e.nickname || "", autocomplete: "off" });
+  const pos = h("input", { type: "text", id: "e-pos", value: e.position || "", placeholder: "เช่น ผู้จัดการสาขา, แคชเชียร์, ครัว", autocomplete: "off" });
+  const phone = h("input", { type: "tel", id: "e-phone", value: e.phone || "", autocomplete: "off" });
+  const code = h("input", { type: "text", id: "e-code", value: e.code || "", autocomplete: "off" });
+  const start = h("input", { type: "date", id: "e-start", value: e.startDate || "" });
+  const remark = h("textarea", { id: "e-remark", placeholder: "ข้อมูลการปฏิบัติงานเพิ่มเติม", style: "min-height:64px" }); remark.value = e.remark || "";
+  const br = branchSelect("e-branch", e.branchId || branchId || "", { any: "— เลือกสาขา —" });
+  const st = h("select", { id: "e-status" }, h("option", { value: "active", text: "ทำงานอยู่" }), h("option", { value: "left", text: "พ้นสภาพ / ลาออก" }));
+  st.value = e.status || "active";
+  const bulk = h("textarea", { id: "e-bulk", style: "min-height:160px", placeholder: "บรรทัดละ 1 คน: ชื่อ-นามสกุล, ชื่อเล่น, ตำแหน่ง, เบอร์โทร\nสมชาย ใจดี, ชาย, ผู้จัดการสาขา, 0812345678\nสมหญิง รักงาน, หญิง, แคชเชียร์" });
+  const bulkPrev = h("div", { class: "progress", "aria-live": "polite" });
+  const parseBulk = () => bulk.value.split(/\r?\n/).map(l => l.split(/\t|,/).map(x => x.trim())).filter(c => c[0]);
+  bulk.addEventListener("input", () => { const n = parseBulk().length; bulkPrev.textContent = n ? `จะเพิ่ม ${n} คน` : ""; });
+  const err = h("div", { class: "err", role: "alert" });
+  const save = h("button", { type: "submit", class: "btn primary", text: existing ? "บันทึกการแก้ไข" : "เพิ่มพนักงาน" });
+  const one = h("div", { class: "form" },
+    h("div", { class: "grid2" }, fld("ชื่อ-นามสกุล", name, true), fld("ชื่อเล่น", nick)),
+    h("div", { class: "grid2" }, fld("ตำแหน่ง", pos), fld("เบอร์โทร", phone)),
+    h("div", { class: "grid2" }, fld("รหัสพนักงาน", code), fld("วันเริ่มงาน", start)),
+    existing ? fld("สถานะ", st) : null, fld("หมายเหตุ", remark));
+  const many = h("div", { class: "form", hidden: true },
+    fld("รายชื่อพนักงาน", bulk, true),
+    h("div", { style: "font-size:13px;color:var(--muted)", text: "คัดลอกจาก Excel มาวางได้เลย (คอลัมน์ ชื่อ, ชื่อเล่น, ตำแหน่ง, เบอร์โทร) ส่งรายชื่อให้ทีมกลางตรวจสอบ" }), bulkPrev);
+  const tabs = existing ? null : h("div", { class: "seg", role: "group", "aria-label": "วิธีเพิ่ม" },
+    h("button", { type: "button", "aria-pressed": "true", text: "ทีละคน", onclick: ev => setMode("one", ev) }),
+    h("button", { type: "button", "aria-pressed": "false", text: "หลายคนพร้อมกัน", onclick: ev => setMode("many", ev) }));
+  function setMode(m) { mode = m; one.hidden = m !== "one"; many.hidden = m !== "many"; [...tabs.children].forEach((b, k) => b.setAttribute("aria-pressed", (k === 0) === (m === "one") ? "true" : "false")); save.textContent = m === "one" ? "เพิ่มพนักงาน" : "เพิ่มทั้งหมด"; err.textContent = ""; }
+  const form = h("form", { class: "form", novalidate: true }, tabs, fld("สาขา", br, true), one, many, err, save);
+  connect(form,"เพิ่มพนักงาน",br,()=>mode==="many"?{"รายชื่อพนักงาน":bulk.value.trim()}:({"ชื่อพนักงาน":name.value.trim(),"ชื่อเล่น":nick.value.trim(),"ตำแหน่ง":pos.value.trim(),"เบอร์โทร":phone.value.trim(),"รหัสพนักงาน":code.value.trim(),"วันเริ่มงาน":start.value.trim(),"หมายเหตุ":remark.value.trim()}),[]);
+}
+
+function connect(form,type,branch,fields,photos) {
+  let key=crypto.randomUUID();
+  const close=openSheet(type,form);
+  form.onsubmit=async event=>{
+    event.preventDefault();
+    const btn=form.querySelector('[type=submit]'),err=form.querySelector('.err');
+    btn.disabled=true;err.textContent="";
+    try {
+      if(!BR[branch.value] || BR[branch.value].closed) throw Error("กรุณาเลือกสาขาที่เปิดอยู่");
+      if(photos.length>5) throw Error("แนบรูปได้ไม่เกิน 5 รูป");
+      const images=await Promise.all(photos.map(file=>compress(file,1000,.65,true)));
+      const id=await new Promise((ok,fail)=>google.script.run.withSuccessHandler(ok).withFailureHandler(fail).submitRecord({key,type,branch:BR[branch.value].name,fields:fields(),images}));
+      close();openSheet("ส่งเรื่องแล้ว",h("div",{class:"notice",text:"ทีมกลางได้รับเรื่องแล้ว · "+id}));
+    }catch(e){err.textContent=e.message || "ส่งไม่สำเร็จ กรุณาลองอีกครั้ง"}finally{btn.disabled=false}
+  };
+}
+document.getElementById("fab").onclick=openRecordChooser;
+document.getElementById("addEmp").onclick=()=>openEmployeeForm(null,S.view==="branch"?S.branchId:"");
+render();
+</script></body></html>
