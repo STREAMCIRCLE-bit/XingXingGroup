@@ -31,10 +31,10 @@ function detailRows_(type,id,time,branch,f) {
   let people;
   if(f['รายชื่อพนักงาน']){
     people=f['รายชื่อพนักงาน'].split(/\r?\n/).filter(line=>line.trim()).map(line=>{
-      const parts=line.split(/[\t,]/).map(value=>value.trim());
-      if(!parts[0] || parts.length>4) throw Error('กรุณาระบุพนักงานบรรทัดละคน ไม่เกินสี่ช่อง');
-      const [name,nick,position,phone]=parts;
-      return row([name,nick,position,phone,'','','ทำงานอยู่','']);
+      const parts=line.split(line.includes('\t') ? '\t' : ',').map(value=>value.trim());
+      if(!parts[0] || parts.length>7 && line.includes('\t')) throw Error('กรุณาระบุพนักงานบรรทัดละคน ไม่เกินเจ็ดช่อง');
+      const [name,nick,position,phone,code,start,...notes]=parts;
+      return row([name,nick,position,phone,code,start,'ทำงานอยู่',notes.join(', ')]);
     });
   }else{
     people=[row([person,f['ชื่อเล่น'],f['ตำแหน่ง'],f['เบอร์โทร'],f['รหัสพนักงาน'],f['วันเริ่มงาน'],f['สถานะ'] || 'ทำงานอยู่',f['หมายเหตุ']])];

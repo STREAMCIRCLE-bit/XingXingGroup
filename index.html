@@ -547,7 +547,7 @@ function openEmployeeForm(existing, branchId) {
   const br = branchSelect("e-branch", e.branchId || branchId || "", { any: "— เลือกสาขา —" });
   const st = h("select", { id: "e-status" }, h("option", { value: "active", text: "ทำงานอยู่" }), h("option", { value: "left", text: "พ้นสภาพ / ลาออก" }));
   st.value = e.status || "active";
-  const bulk = h("textarea", { id: "e-bulk", style: "min-height:160px", placeholder: "บรรทัดละ 1 คน: ชื่อ-นามสกุล, ชื่อเล่น, ตำแหน่ง, เบอร์โทร\nสมชาย ใจดี, ชาย, ผู้จัดการสาขา, 0812345678\nสมหญิง รักงาน, หญิง, แคชเชียร์" });
+  const bulk = h("textarea", { id: "e-bulk", style: "min-height:160px", placeholder: "สมชาย ใจดี,ชาย,ครัว,0812345678,0007,2026-11-17,กะเช้า\nสมหญิง รักงาน,หญิง,แคชเชียร์,0812345679,,,กะเย็น" });
   const bulkPrev = h("div", { class: "progress", "aria-live": "polite" });
   const parseBulk = () => bulk.value.split(/\r?\n/).map(l => l.split(/\t|,/).map(x => x.trim())).filter(c => c[0]);
   bulk.addEventListener("input", () => { const n = parseBulk().length; bulkPrev.textContent = n ? `จะเพิ่ม ${n} คน` : ""; });
@@ -560,13 +560,13 @@ function openEmployeeForm(existing, branchId) {
     existing ? fld("สถานะ", st) : null, fld("หมายเหตุ", remark));
   const many = h("div", { class: "form", hidden: true },
     fld("รายชื่อพนักงาน", bulk, true),
-    h("div", { style: "font-size:13px;color:var(--muted)", text: "คัดลอกจาก Excel มาวางได้เลย (คอลัมน์ ชื่อ, ชื่อเล่น, ตำแหน่ง, เบอร์โทร) ส่งรายชื่อให้ทีมกลางตรวจสอบ" }), bulkPrev);
+    h("div", { style: "font-size:13px;color:var(--muted)", text: "วางจาก Excel หรือคั่นด้วยจุลภาค บรรทัดละ 1 คน ตามลำดับ ชื่อ-นามสกุล, ชื่อเล่น, ตำแหน่ง, เบอร์โทร, รหัสพนักงาน, วันเริ่มงาน (เช่น 2026-11-17), หมายเหตุ กรอกเฉพาะชื่อก็ได้ หากเว้นช่องกลางให้คงตัวคั่นไว้" }), bulkPrev);
   const tabs = existing ? null : h("div", { class: "seg", role: "group", "aria-label": "วิธีเพิ่ม" },
     h("button", { type: "button", "aria-pressed": "true", text: "ทีละคน", onclick: ev => setMode("one", ev) }),
     h("button", { type: "button", "aria-pressed": "false", text: "หลายคนพร้อมกัน", onclick: ev => setMode("many", ev) }));
   function setMode(m) { mode = m; one.hidden = m !== "one"; many.hidden = m !== "many"; [...tabs.children].forEach((b, k) => b.setAttribute("aria-pressed", (k === 0) === (m === "one") ? "true" : "false")); save.textContent = m === "one" ? "เพิ่มพนักงาน" : "เพิ่มทั้งหมด"; err.textContent = ""; }
   const form = h("form", { class: "form", novalidate: true }, tabs, fld("สาขา", br, true), one, many, err, save);
-  connect(form,"เพิ่มพนักงาน",br,()=>mode==="many"?{"รายชื่อพนักงาน":bulk.value.trim()}:({"ชื่อพนักงาน":name.value.trim(),"ชื่อเล่น":nick.value.trim(),"ตำแหน่ง":pos.value.trim(),"เบอร์โทร":phone.value.trim(),"รหัสพนักงาน":code.value.trim(),"วันเริ่มงาน":start.value.trim(),"หมายเหตุ":remark.value.trim()}),[]);
+  connect(form,"เพิ่มพนักงาน",br,()=>mode==="many"?{"รายชื่อพนักงาน":bulk.value}:({"ชื่อพนักงาน":name.value.trim(),"ชื่อเล่น":nick.value.trim(),"ตำแหน่ง":pos.value.trim(),"เบอร์โทร":phone.value.trim(),"รหัสพนักงาน":code.value.trim(),"วันเริ่มงาน":start.value.trim(),"หมายเหตุ":remark.value.trim()}),[]);
 }
 
 function connect(form,type,branch,fields,photos) {
