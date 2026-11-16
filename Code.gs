@@ -17,7 +17,7 @@ function doPost(event) {
 
 function detailRows_(type,id,time,branch,f) {
   const branches = {"วงเวียนใหญ่":["Mala","Shabu"],"พระราม 3":["Mala","Shabu"],"พุทธมณฑลสาย 2":["Mala","Shabu"],"บางบอน 5":["Mala","Shabu"],"บรมสิรินธร":["Mala","Shabu"],"มหานคร":["Express","Go (ไม่มี Delivery)"],"ติวานนท์ 28":["Express","Delivery Only"],"บางนา":["Express","Go"],"ทาวน์อินทาวน์":["Express","Go"],"สีลม":["Express","Go*"],"สระบุรี":["Express","Go"],"ลาดพร้าว 12":["Express","Delivery Only"],"นวมินทร์":["Express","ตักชั่ง"],"วิภาวดี":["Express","Delivery Only"],"บรรทัดทอง":["Express","Go"],"ลาดพร้าว 71":["Express","ตักชั่ง"],"เกษตร":["Express","ตักชั่ง"],"ราชพฤกษ์":["Express","Go"],"The Nine พระราม 9":["Express","Delivery Only*"],"บางแค":["Express","ตักชั่ง"],"เพชรเกษม":["Express","Delivery Only"],"บางใหญ่":["Express","Delivery Only"],"ลาดกระบัง":["Express","Go"],"สนามเป้า":["Express","ตักชั่ง"],"สาธุ 19":["Express","ตักชั่ง"],"ติวานนท์ T10":["Express","ตักชั่ง"],"คลอง 3":["Express","ตักชั่ง"],"ปู่เจ้า":["Express","ตักชั่ง"],"กิ่งแก้ว":["Express","ตักชั่ง"],"รัตนธิเบศร์":["Express","ตักชั่ง"],"อ้อมใหญ่":["Express","ตักชั่ง"],"สามเสน":["Express","Go"],"อุดมสุข 45":["Express","ตักชั่ง"],"วชิรธรรม":["Express","ตักชั่ง"],"ตำหรุ บางพลี":["Express","ตักชั่ง"],"บางพลัด / Lotus จรัญ":["Express","ตักชั่ง"],"วัดลาดปลาดุก":["Express","ตักชั่ง"],"หนามแดง":["Express","ตักชั่ง"],"จรัญ":["Express","ตักชั่ง"],"ห้วยขวาง":["Express","ตักชั่ง"],"เยาวราช":["Express","ตักชั่ง"],"วิภา":["Express","ตักชั่ง"]};
-  const prefix = [id,time,...[branches[branch]?.[0] || '',branch,branches[branch]?.[1] || '']];
+  const prefix = [id,time,branches[branch]?.[0] || '',branch,branches[branch]?.[1] || ''];
   const row = values => prefix.concat(values.map(v=>v ?? ''));
   const date=f['วันที่'], due=f['กำหนดติดตาม'], person=f['ชื่อพนักงาน'];
   if(type==='ปัญหาสาขา') {
@@ -91,6 +91,9 @@ function submitRecord(data) {
     try {
       sheet.appendRow([id,time,safe(data.branch),safe(fields['วันที่']||''),safe(data.type+(fields['ประเภท']?' · '+fields['ประเภท']:'')),safe(detail),'รับเรื่อง',safe(fields['ผู้รับผิดชอบ']||''),'','','','','','','',data.key]);
       detailRange.setValues(detailData.rows.map(values=>values.map(v=>typeof v==='string'?safe(v):v)));
+      if(data.type!=='เพิ่มพนักงาน') {
+        detailSheet.getRange(detailRow,detailData.rows[0].length+1).setValue(photos.length);
+      }
       photos.forEach((blob,i)=>{
         const image=sheet.insertImage(blob,11+i,row);
         inserted.push(image);
@@ -100,7 +103,7 @@ function submitRecord(data) {
       SpreadsheetApp.flush();
       props.setProperty('lastReceipt',String(next));
     } catch(e) {
-      if(detailSheet.getRange(detailRow,1).getValue()===id) detailRange.clearContent();
+      if(detailSheet.getRange(detailRow,1).getValue()===id) detailSheet.getRange(detailRow,1,detailData.rows.length,detailData.rows[0].length+1).clearContent();
       inserted.forEach(image=>image.remove());
       if(sheet.getRange(row,1).getValue()===id) sheet.getRange(row,1,1,16).clearContent();
       throw e;
