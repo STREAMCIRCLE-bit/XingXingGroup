@@ -572,15 +572,32 @@ function openEmployeeForm(existing, branchId) {
 function connect(form,type,branch,fields,photos) {
   let key=crypto.randomUUID();
   const close=openSheet(type,form);
+  const feedback=h("div",{role:"status","aria-live":"polite",hidden:true});
+  const meter=h("progress",{max:100,value:0,style:"width:100%"});
+  const message=h("div",{class:"progress"});
+  feedback.append(meter,message);form.insertBefore(feedback,form.querySelector("[type=submit]"));
+  function update(percent,label){feedback.hidden=false;meter.value=percent;message.textContent=percent+"% · "+label;}
   form.onsubmit=async event=>{
     event.preventDefault();
     const btn=form.querySelector('[type=submit]'),err=form.querySelector('.err');
+    if(btn.disabled)return;
     btn.disabled=true;err.textContent="";
+    let timer;
     try {
       if(!BR[branch.value] || BR[branch.value].closed) throw Error("กรุณาเลือกสาขาที่เปิดอยู่");
       if(photos.length>5) throw Error("แนบรูปได้ไม่เกิน 5 รูป");
-      const images=await Promise.all(photos.map(file=>compress(file,1000,.65,true)));
+      const total=photos.length+3;
+      let done=1;
+      update(Math.floor(100*done/total),"ตรวจข้อมูลแล้ว");
+      const images=[];
+      for(const file of photos){
+        images.push(await compress(file,1000,.65,true));
+        update(Math.floor(100*++done/total),"เตรียมรูปแล้ว "+images.length+"/"+photos.length);
+      }
       const payload={key,type,branch:BR[branch.value].name,fields:fields(),images};
+      const waiting=Math.floor(100*++done/total), started=Date.now();
+      const showWait=()=>update(waiting,"กำลังส่งและรอเลขรับเรื่อง · "+Math.floor((Date.now()-started)/1000)+" วินาที");
+      showWait();timer=setInterval(showWait,1000);
       const response=await fetch("https://script.google.com/macros/s/AKfycbz-forYe8uMXFi1RLtzb9rhm42pv0FIj0_tHi38SAnxTHs03AGaMmfcdxsNeYfyOvQp/exec",{
         method:"POST", credentials:"omit",
         headers:{"Content-Type":"text/plain;charset=utf-8"},
@@ -590,8 +607,9 @@ function connect(form,type,branch,fields,photos) {
       const result=await response.json();
       if(result.id!=="XX-"+key && !(result.key===key && /^XX-\d{6,}$/.test(result.id))) throw Error(result.error || "ยังยืนยันการรับเรื่องไม่ได้ กรุณาลองอีกครั้ง");
       const id=result.id;
-      close();openSheet("ส่งเรื่องแล้ว",h("div",{class:"notice",text:"ทีมกลางได้รับเรื่องแล้ว · "+id}));
-    }catch(e){err.textContent=e.message || "ส่งไม่สำเร็จ กรุณาลองอีกครั้ง"}finally{btn.disabled=false}
+      update(100,"บันทึกสำเร็จ");
+      close();openSheet("ส่งเรื่องแล้ว · 100%",h("div",{class:"notice",text:"ทีมกลางได้รับเรื่องแล้ว · "+id}));
+    }catch(e){feedback.hidden=true;err.textContent=e.message || "ส่งไม่สำเร็จ กรุณาลองอีกครั้ง"}finally{clearInterval(timer);btn.disabled=false}
   };
 }
 document.getElementById("fab").onclick=openRecordChooser;

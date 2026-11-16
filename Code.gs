@@ -15,6 +15,33 @@ function doPost(event) {
   return ContentService.createTextOutput(JSON.stringify(result)).setMimeType(ContentService.MimeType.JSON);
 }
 
+function detailRows_(type,id,time,branch,f) {
+  const branches = {"วงเวียนใหญ่":["Mala","Shabu"],"พระราม 3":["Mala","Shabu"],"พุทธมณฑลสาย 2":["Mala","Shabu"],"บางบอน 5":["Mala","Shabu"],"บรมสิรินธร":["Mala","Shabu"],"มหานคร":["Express","Go (ไม่มี Delivery)"],"ติวานนท์ 28":["Express","Delivery Only"],"บางนา":["Express","Go"],"ทาวน์อินทาวน์":["Express","Go"],"สีลม":["Express","Go*"],"สระบุรี":["Express","Go"],"ลาดพร้าว 12":["Express","Delivery Only"],"นวมินทร์":["Express","ตักชั่ง"],"วิภาวดี":["Express","Delivery Only"],"บรรทัดทอง":["Express","Go"],"ลาดพร้าว 71":["Express","ตักชั่ง"],"เกษตร":["Express","ตักชั่ง"],"ราชพฤกษ์":["Express","Go"],"The Nine พระราม 9":["Express","Delivery Only*"],"บางแค":["Express","ตักชั่ง"],"เพชรเกษม":["Express","Delivery Only"],"บางใหญ่":["Express","Delivery Only"],"ลาดกระบัง":["Express","Go"],"สนามเป้า":["Express","ตักชั่ง"],"สาธุ 19":["Express","ตักชั่ง"],"ติวานนท์ T10":["Express","ตักชั่ง"],"คลอง 3":["Express","ตักชั่ง"],"ปู่เจ้า":["Express","ตักชั่ง"],"กิ่งแก้ว":["Express","ตักชั่ง"],"รัตนธิเบศร์":["Express","ตักชั่ง"],"อ้อมใหญ่":["Express","ตักชั่ง"],"สามเสน":["Express","Go"],"อุดมสุข 45":["Express","ตักชั่ง"],"วชิรธรรม":["Express","ตักชั่ง"],"ตำหรุ บางพลี":["Express","ตักชั่ง"],"บางพลัด / Lotus จรัญ":["Express","ตักชั่ง"],"วัดลาดปลาดุก":["Express","ตักชั่ง"],"หนามแดง":["Express","ตักชั่ง"],"จรัญ":["Express","ตักชั่ง"],"ห้วยขวาง":["Express","ตักชั่ง"],"เยาวราช":["Express","ตักชั่ง"],"วิภา":["Express","ตักชั่ง"]};
+  const prefix = [id,time,...[branches[branch]?.[0] || '',branch,branches[branch]?.[1] || '']];
+  const row = values => prefix.concat(values.map(v=>v ?? ''));
+  const date=f['วันที่'], due=f['กำหนดติดตาม'], person=f['ชื่อพนักงาน'];
+  if(type==='ปัญหาสาขา') {
+    const priority=['','ต่ำ','ปานกลาง','สูง','ด่วนมาก'][f['ความเร่งด่วน']] || f['ความเร่งด่วน'];
+    return {tab:type,rows:[row([date,f['หัวข้อ'],f['ประเภท'],priority,f['รายละเอียด'],f['ผลกระทบ'],f['ผู้รับผิดชอบ'],due])]};
+  }
+  if(type==='ความผิดพนักงาน') {
+    const severity=['','เล็กน้อย','ปานกลาง','ร้ายแรง'][f['ระดับ']] || f['ระดับ'];
+    return {tab:type,rows:[row([date,person,f['ตำแหน่ง'],f['ประเภท'],severity,f['รายละเอียด'],f['ผู้รับผิดชอบ'],due,f['การลงโทษ']])]};
+  }
+  let people;
+  if(f['รายชื่อพนักงาน']){
+    people=f['รายชื่อพนักงาน'].split(/\r?\n/).filter(line=>line.trim()).map(line=>{
+      const parts=line.split(/[\t,]/).map(value=>value.trim());
+      if(!parts[0] || parts.length>4) throw Error('กรุณาระบุพนักงานบรรทัดละคน ไม่เกินสี่ช่อง');
+      const [name,nick,position,phone]=parts;
+      return row([name,nick,position,phone,'','','ทำงานอยู่','']);
+    });
+  }else{
+    people=[row([person,f['ชื่อเล่น'],f['ตำแหน่ง'],f['เบอร์โทร'],f['รหัสพนักงาน'],f['วันเริ่มงาน'],f['สถานะ'] || 'ทำงานอยู่',f['หมายเหตุ']])];
+  }
+  return {tab:'ทะเบียนพนักงาน',rows:people};
+}
+
 function submitRecord(data) {
   const required = {
     'ปัญหาสาขา':['หัวข้อ','ประเภท','วันที่'],
@@ -55,9 +82,15 @@ function submitRecord(data) {
     }
     const next=previous+1;
     const id='XX-'+String(next).padStart(6,'0');
+    const time=new Date();
+    const detailData=detailRows_(data.type,id,time,data.branch,fields);
+    const detailSheet=sheet.getParent().getSheetByName(detailData.tab);
+    const detailRow=detailSheet.getLastRow()+1;
+    const detailRange=detailSheet.getRange(detailRow,1,detailData.rows.length,detailData.rows[0].length);
     const row=last+1, inserted=[];
     try {
-      sheet.appendRow([id,new Date(),safe(data.branch),safe(fields['วันที่']||''),safe(data.type+(fields['ประเภท']?' · '+fields['ประเภท']:'')),safe(detail),'รับเรื่อง',safe(fields['ผู้รับผิดชอบ']||''),'','','','','','','',data.key]);
+      sheet.appendRow([id,time,safe(data.branch),safe(fields['วันที่']||''),safe(data.type+(fields['ประเภท']?' · '+fields['ประเภท']:'')),safe(detail),'รับเรื่อง',safe(fields['ผู้รับผิดชอบ']||''),'','','','','','','',data.key]);
+      detailRange.setValues(detailData.rows.map(values=>values.map(v=>typeof v==='string'?safe(v):v)));
       photos.forEach((blob,i)=>{
         const image=sheet.insertImage(blob,11+i,row);
         inserted.push(image);
@@ -67,6 +100,7 @@ function submitRecord(data) {
       SpreadsheetApp.flush();
       props.setProperty('lastReceipt',String(next));
     } catch(e) {
+      if(detailSheet.getRange(detailRow,1).getValue()===id) detailRange.clearContent();
       inserted.forEach(image=>image.remove());
       if(sheet.getRange(row,1).getValue()===id) sheet.getRange(row,1,1,16).clearContent();
       throw e;
