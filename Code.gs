@@ -85,7 +85,9 @@ function submitRecord(data) {
     const time=new Date();
     const detailData=detailRows_(data.type,id,time,data.branch,fields);
     const detailSheet=sheet.getParent().getSheetByName(detailData.tab);
-    const detailRow=detailSheet.getLastRow()+1;
+    const receiptCells=detailSheet.getRange(1,1,detailSheet.getLastRow(),1).getValues();
+    let detailRow=receiptCells.length+1;
+    while(detailRow>1 && !receiptCells[detailRow-2][0]) detailRow--;
     const detailRange=detailSheet.getRange(detailRow,1,detailData.rows.length,detailData.rows[0].length);
     const row=last+1, inserted=[];
     try {
